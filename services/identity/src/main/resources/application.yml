@@ -1,0 +1,58 @@
+server:
+  port: ${PORT:8081}
+  error:
+    include-message: never
+    include-stacktrace: never
+  shutdown: graceful
+spring:
+  application:
+    name: identity-service
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      connection-timeout: 2500
+      data-source-properties:
+        socketTimeout: 15
+        loginTimeout: 5
+        options: '-c statement_timeout=10000 -c lock_timeout=4000'
+      maximum-pool-size: ${DB_POOL_SIZE:8}
+  flyway:
+    default-schema: identity_db
+    schemas: identity_db
+    create-schemas: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+    healthcheck:
+      enabled: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${HOSTNAME:localhost}:${server.port}
+    health-check-url-path: /actuator/health
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+sentinel:
+  cors-origins: ${CORS_ORIGINS:}
+  jwt:
+    issuer: ${JWT_ISSUER}
+    audience: ${JWT_AUDIENCE:api-sentinel}
+    keystore: ${JWT_KEYSTORE}
+    keystore-password: ${JWT_KEYSTORE_PASSWORD}
+    key-id: ${JWT_KEY_ID:sentinel-v1}
+  secure-cookie: ${SECURE_COOKIE:true}

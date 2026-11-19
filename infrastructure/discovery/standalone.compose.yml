@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres:17.11-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: sentinel
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:?Set IDENTITY_DB_PASSWORD}
+      REGISTRY_DB_PASSWORD: ${REGISTRY_DB_PASSWORD:?Set REGISTRY_DB_PASSWORD}
+      ANALYZER_DB_PASSWORD: ${ANALYZER_DB_PASSWORD:?Set ANALYZER_DB_PASSWORD}
+    volumes:
+      - sentinel-data:/var/lib/postgresql/data
+      - ./discovery/init-dev-postgres.sql:/docker-entrypoint-initdb.d/01-sentinel.sql:ro
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -h 127.0.0.1 -U postgres -d sentinel]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4.2.7-management
+    hostname: ${RABBITMQ_NODE_HOSTNAME:-rabbitmq}
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?Set RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: '+S 2:2 +SDcpu 1 +SDio 2'
+      RABBITMQ_CTL_ERL_ARGS: '+S 1:1 +SDcpu 1 +SDio 1'
+    restart: unless-stopped
+    volumes:
+      - sentinel-mq:/var/lib/rabbitmq
+    healthcheck:
+      test: [CMD-SHELL, "bash -c 'exec 3<>/dev/tcp/127.0.0.1/5672'"]
+      interval: 5s
+      timeout: 8s
+      retries: 20
+      start_period: 30s
+
+  discovery:
+    ports:
+      - '127.0.0.1:8761:8761'
+
+  identity:
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '127.0.0.1:8081:8081'
+
+  registry:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    ports:
+      - '127.0.0.1:8082:8082'
+
+  analyzer:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    ports:
+      - target: 8083
+        host_ip: 127.0.0.1
+
+volumes:
+  sentinel-data:
+  sentinel-mq:

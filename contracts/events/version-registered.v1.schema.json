@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apisentinel.example/contracts/events/version-registered.v1.schema.json",
+  "title": "VERSION_REGISTERED",
+  "type": "object",
+  "required": [
+    "eventId",
+    "schemaVersion",
+    "eventType",
+    "correlationId",
+    "entityId",
+    "occurredAt",
+    "producer",
+    "payload"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "eventType": {
+      "const": "VERSION_REGISTERED"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "entityId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "producer": {
+      "const": "registry-service"
+    },
+    "payload": {
+      "type": "object",
+      "required": [
+        "analysisId",
+        "apiId",
+        "versionId",
+        "baselineVersionId",
+        "ownerId",
+        "submittedBy"
+      ],
+      "properties": {
+        "analysisId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "apiId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "versionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "baselineVersionId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ownerId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "submittedBy": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    }
+  }
+}

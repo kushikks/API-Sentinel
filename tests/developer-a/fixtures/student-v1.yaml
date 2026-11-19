@@ -1,0 +1,32 @@
+openapi: 3.0.3
+info:
+  title: Student API
+  version: 1.0.0
+paths:
+  /api/students/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A student record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+components:
+  schemas:
+    Student:
+      type: object
+      required: [studentId, name, department]
+      properties:
+        studentId:
+          type: integer
+        name:
+          type: string
+        department:
+          type: string

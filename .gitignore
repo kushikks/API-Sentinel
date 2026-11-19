@@ -1,0 +1,44 @@
+**/target/
+**/node_modules/
+**/dist/
+**/.env
+**/.local/
+**/*.pem
+**/*.key
+**/*.p12
+*.log
+test-results/
+playwright-report/
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+!.env.template
+*.pem
+*.key
+
+# Java and Maven
+target/
+*.class
+.mvn/wrapper/maven-wrapper.jar
+
+# Node.js and frontend
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+
+# Local runtime data
+.local/
+*.log
+*.pid
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Operating system
+.DS_Store
+Thumbs.db

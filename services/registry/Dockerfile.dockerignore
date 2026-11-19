@@ -1,0 +1,17 @@
+.git
+**/target
+**/node_modules
+**/dist
+**/.local
+**/.env
+**/*.pem
+**/*.key
+**/*.p12
+services/impact
+services/monitor
+services/alert
+infrastructure/gateway
+infrastructure/rabbitmq
+frontend
+tests
+docs

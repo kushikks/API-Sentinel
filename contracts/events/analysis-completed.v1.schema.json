@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apisentinel.example/contracts/events/analysis-completed.v1.schema.json",
+  "title": "ANALYSIS_COMPLETED",
+  "type": "object",
+  "required": [
+    "eventId",
+    "schemaVersion",
+    "eventType",
+    "correlationId",
+    "entityId",
+    "occurredAt",
+    "producer",
+    "payload"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "eventType": {
+      "const": "ANALYSIS_COMPLETED"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "entityId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "producer": {
+      "const": "analyzer-service"
+    },
+    "payload": {
+      "type": "object",
+      "required": [
+        "analysisId",
+        "apiId",
+        "baselineVersionId",
+        "newVersionId",
+        "status",
+        "breakingCount",
+        "potentiallyBreakingCount",
+        "nonBreakingCount"
+      ],
+      "properties": {
+        "analysisId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "apiId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "baselineVersionId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "newVersionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "const": "COMPLETED"
+        },
+        "breakingCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "potentiallyBreakingCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "nonBreakingCount": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

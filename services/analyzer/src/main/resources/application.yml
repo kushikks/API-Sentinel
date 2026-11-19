@@ -1,0 +1,98 @@
+server:
+  port: ${PORT:8083}
+  error:
+    include-message: never
+    include-stacktrace: never
+  shutdown: graceful
+spring:
+  application:
+    name: analyzer-service
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      connection-timeout: 2500
+      data-source-properties:
+        socketTimeout: 15
+        loginTimeout: 5
+        options: '-c statement_timeout=10000 -c lock_timeout=4000'
+      maximum-pool-size: ${DB_POOL_SIZE:8}
+  flyway:
+    default-schema: analyzer_db
+    schemas: analyzer_db
+    create-schemas: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    connection-timeout: 2s
+    requested-heartbeat: 15s
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+    listener:
+      simple:
+        concurrency: 1
+        prefetch: 4
+        default-requeue-rejected: true
+        missing-queues-fatal: false
+  task:
+    scheduling:
+      pool:
+        size: 2
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+    healthcheck:
+      enabled: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${HOSTNAME:localhost}:${server.port}
+    health-check-url-path: /actuator/health
+management:
+  health:
+    rabbit:
+      enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+sentinel:
+  cors-origins: ${CORS_ORIGINS:}
+  jwt:
+    issuer: ${JWT_ISSUER}
+    audience: ${JWT_AUDIENCE:api-sentinel}
+    jwks: ${JWT_JWKS_URL:http://localhost:8081/auth/.well-known/jwks.json}
+  analyzer-registry-key: ${ANALYZER_REGISTRY_KEY:}
+  impact-key: ${IMPACT_SERVICE_KEY:}
+  registry-analyzer-key: ${REGISTRY_ANALYZER_KEY:}
+  metrics-key: ${METRICS_SERVICE_KEY:}
+  worker-concurrency: ${ANALYZER_CONCURRENCY:2}
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    model: ${GEMINI_MODEL:gemini-3.5-flash-lite}
+resilience4j:
+  timelimiter:
+    instances:
+      registry-spec:
+        timeout-duration: 5s
+  circuitbreaker:
+    instances:
+      registry-spec:
+        sliding-window-size: 8
+        minimum-number-of-calls: 4
+        wait-duration-in-open-state: 10s

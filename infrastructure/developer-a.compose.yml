@@ -1,0 +1,110 @@
+name: sentinel-a
+
+x-java: &java
+  restart: unless-stopped
+  stop_grace_period: 40s
+  init: true
+  mem_limit: 768m
+  depends_on:
+    discovery:
+      condition: service_healthy
+
+x-health: &health
+  interval: 5s
+  timeout: 3s
+  retries: 20
+  start_period: 20s
+
+x-sentinel-env: &sentinel-env
+  EUREKA_URL: http://discovery:8761/eureka/
+  EUREKA_CLIENT_REGISTRY_FETCH_INTERVAL_SECONDS: ${EUREKA_FETCH_INTERVAL_SECONDS:-10}
+  EUREKA_CLIENT_INSTANCE_INFO_REPLICATION_INTERVAL_SECONDS: ${EUREKA_INSTANCE_REPLICATION_INTERVAL_SECONDS:-10}
+  JWT_ISSUER: ${JWT_ISSUER:?Set JWT_ISSUER}
+  JWT_AUDIENCE: ${JWT_AUDIENCE:-api-sentinel}
+  CORS_ORIGINS: ${CORS_ORIGINS:-}
+  JWT_JWKS_URL: http://identity:8081/auth/.well-known/jwks.json
+
+x-broker-env: &broker-env
+  SPRING_CLOUD_LOADBALANCER_CACHE_ENABLED: 'false'
+  RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+  RABBITMQ_USER: ${RABBITMQ_USER:?Set RABBITMQ_USER}
+  RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}
+  RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
+
+services:
+  discovery:
+    build:
+      context: ..
+      dockerfile: infrastructure/discovery/Dockerfile
+    restart: unless-stopped
+    init: true
+    mem_limit: 512m
+    environment:
+      EUREKA_SELF_PRESERVATION: ${EUREKA_SELF_PRESERVATION:-true}
+      EUREKA_SERVER_RESPONSE_CACHE_UPDATE_INTERVAL_MS: ${EUREKA_RESPONSE_CACHE_REFRESH_MS:-5000}
+    healthcheck:
+      <<: *health
+      test: [CMD, /app/check-health, '8761']
+
+  identity:
+    <<: *java
+    build:
+      context: ..
+      dockerfile: services/identity/Dockerfile
+    environment:
+      <<: *sentinel-env
+      DB_URL: ${IDENTITY_DB_URL:-jdbc:postgresql://postgres:5432/sentinel?currentSchema=identity_db}
+      DB_USER: ${IDENTITY_DB_USER:-sentinel_identity}
+      DB_PASSWORD: ${IDENTITY_DB_PASSWORD:?Set IDENTITY_DB_PASSWORD}
+      JWT_KEYSTORE: file:/run/sentinel/signing.p12
+      JWT_KEYSTORE_PASSWORD: ${JWT_KEYSTORE_PASSWORD:?Set JWT_KEYSTORE_PASSWORD}
+      JWT_KEY_ID: ${JWT_KEY_ID:-sentinel-v1}
+      SECURE_COOKIE: ${SECURE_COOKIE:-true}
+    volumes:
+      - type: bind
+        source: ${JWT_KEYSTORE_PATH:?Set JWT_KEYSTORE_PATH}
+        target: /run/sentinel/signing.p12
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      <<: *health
+      test: [CMD, /app/check-health, '8081']
+
+  registry:
+    <<: *java
+    build:
+      context: ..
+      dockerfile: services/registry/Dockerfile
+    environment:
+      <<: [*sentinel-env, *broker-env]
+      DB_URL: ${REGISTRY_DB_URL:-jdbc:postgresql://postgres:5432/sentinel?currentSchema=registry_db}
+      DB_USER: ${REGISTRY_DB_USER:-sentinel_registry}
+      DB_PASSWORD: ${REGISTRY_DB_PASSWORD:?Set REGISTRY_DB_PASSWORD}
+      ANALYZER_REGISTRY_KEY: ${ANALYZER_REGISTRY_KEY:?Set ANALYZER_REGISTRY_KEY}
+      REGISTRY_ANALYZER_KEY: ${REGISTRY_ANALYZER_KEY:?Set REGISTRY_ANALYZER_KEY}
+      IMPACT_SERVICE_KEY: ${IMPACT_SERVICE_KEY:-}
+    healthcheck:
+      <<: *health
+      test: [CMD, /app/check-health, '8082']
+
+  analyzer:
+    <<: *java
+    build:
+      context: ..
+      dockerfile: services/analyzer/Dockerfile
+    environment:
+      <<: [*sentinel-env, *broker-env]
+      DB_URL: ${ANALYZER_DB_URL:-jdbc:postgresql://postgres:5432/sentinel?currentSchema=analyzer_db}
+      DB_USER: ${ANALYZER_DB_USER:-sentinel_analyzer}
+      DB_PASSWORD: ${ANALYZER_DB_PASSWORD:?Set ANALYZER_DB_PASSWORD}
+      ANALYZER_REGISTRY_KEY: ${ANALYZER_REGISTRY_KEY:?Set ANALYZER_REGISTRY_KEY}
+      REGISTRY_ANALYZER_KEY: ${REGISTRY_ANALYZER_KEY:?Set REGISTRY_ANALYZER_KEY}
+      IMPACT_SERVICE_KEY: ${IMPACT_SERVICE_KEY:-}
+      METRICS_SERVICE_KEY: ${METRICS_SERVICE_KEY:-}
+      ANALYZER_CONCURRENCY: ${ANALYZER_CONCURRENCY:-2}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
+    healthcheck:
+      <<: *health
+      test: [CMD, /app/check-health, '8083']
